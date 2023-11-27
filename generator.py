@@ -49,8 +49,6 @@ class SimulationBox:
 
             vec = np.array([x,y,z])
             
-            return vec
-
             # calculate rotation based on whether a previous bond vector
             # was generated. you can't just leave the bond vector as it is,
             # it must be generated with respect to the previous position to
@@ -59,17 +57,20 @@ class SimulationBox:
             # taking the dot product with the z-axis, so just take zth
             # component
             # using v_ to distinguish from bond vector
-            v_gamma = math.acos(bv[2]) # angle from z-axis
-            v_theta = math.pi/2 - v_gamma # angle from x-axis
-
+            v_gamma = math.acos(bv[2]) # rotation over y axis
+            v_theta = math.acos(bv[1]) # rotation over z axis
             
-            rotmat = np.array([[ math.cos(v_theta)*math.cos(v_gamma), -math.sin(v_theta), math.cos(v_theta)*math.sin(v_gamma)],
-                               [ math.sin(v_theta)*math.cos(v_gamma),  math.cos(v_theta), math.sin(v_theta)*math.sin(v_gamma)],
-                               [                  -math.sin(v_gamma),                  0,                  math.cos(v_gamma)]])
+            rotmat_y = np.array([[math.cos(v_gamma), 0, math.sin(v_gamma)],
+                                 [0, 1, 0],
+                                 [-math.sin(v_gamma), 0, math.cos(v_gamma)]])
             
-            new_vec = np.dot(rotmat, vec)
-                
-            # return new_vec
+            rotmat_z = np.array([[math.cos(v_theta), -math.sin(v_theta), 0],
+                                 [math.sin(v_theta), math.cos(v_theta), 0],
+                                 [0, 0, 1]])
+                       
+            new_vec = np.dot(np.dot(rotmat_z, rotmat_y), vec)
+            
+            return new_vec
 
         walk = [] # all beads within this walk will be stored here.
                           # they will later be checked and then read into the
@@ -114,8 +115,6 @@ class SimulationBox:
             prev_bv = bv            
             bv = bond_vec(bondlength, dihedral, bv)
 
-            print(np.dot(prev_bv, bv))
-
         for i in walk:
             self.beads.append(i)
 
@@ -124,7 +123,38 @@ class SimulationBox:
         
         # increment number of walks.
         self.num_walks += 1            
-        
 
 
+box = SimulationBox(30, 30, 30)
+box.generateChain(5, 0.1, math.pi/2)
 
+x = []
+y = []
+z = []
+
+print("testing angles")
+for j in range(1, len(box.beads)):
+    b1 = np.array([box.beads[j][2] - box.beads[j-1][2],
+                   box.beads[j][3] - box.beads[j-1][3],
+                   box.beads[j][4] - box.beads[j-1][4]])
+
+    b2 = np.array([box.beads[j-1][2] - box.beads[j-2][2],
+                   box.beads[j-1][3] - box.beads[j-2][3],
+                   box.beads[j-1][4] - box.beads[j-2][4]])
+    
+    print(np.linalg.norm(b1),
+          np.linalg.norm(b2))
+    
+    print(math.acos(np.dot(np.array(b1),np.array(b2))/(np.linalg.norm(b1)*np.linalg.norm(b2))))
+    print(" ")
+
+for i in box.beads:
+    x.append(i[2])
+    y.append(i[3])
+    z.append(i[4])
+
+fig = plt.figure()
+ax = fig.add_subplot(projection='3d')
+
+plt.plot(x, y, z, "-")
+plt.show()
