@@ -6,6 +6,8 @@ import numpy as np
 import math
 import random
 import matplotlib.pyplot as plt
+from datetime import date
+today = date.today()
 
 class SimulationBox:
     def __init__(self, x, y, z):
@@ -52,23 +54,30 @@ class SimulationBox:
             # calculate rotation based on whether a previous bond vector
             # was generated. you can't just leave the bond vector as it is,
             # it must be generated with respect to the previous position to
-            # avoid an upward bias
-            bv = bv*np.linalg.norm(bv)
-            # taking the dot product with the z-axis, so just take zth
-            # component
-            # using v_ to distinguish from bond vector
-            v_gamma = math.acos(bv[2]) # rotation over y axis
-            v_theta = math.acos(bv[1]) # rotation over z axis
+            # avoid an upward bias.
+
+            # essentially, we are transforming our coordinate system such
+            # that this is the new z-axis
+            n = bv/np.linalg.norm(bv)
+            k = np.array([0,0,1]) # old x-axis
             
-            rotmat_y = np.array([[math.cos(v_gamma), 0, math.sin(v_gamma)],
-                                 [0, 1, 0],
-                                 [-math.sin(v_gamma), 0, math.cos(v_gamma)]])
-            
-            rotmat_z = np.array([[math.cos(v_theta), -math.sin(v_theta), 0],
-                                 [math.sin(v_theta), math.cos(v_theta), 0],
-                                 [0, 0, 1]])
-                       
-            new_vec = np.dot(np.dot(rotmat_z, rotmat_y), vec)
+            # we do so using quaternion transformations
+            theta = math.acos(np.dot(n, k))
+            b = np.cross(k, n)
+            b = b/np.linalg.norm(b)
+
+            # quaternion components
+            q0 = math.cos(theta/2)
+            q1 = math.sin(theta/2)*b[0]
+            q2 = math.sin(theta/2)*b[1]
+            q3 = math.sin(theta/2)*b[2]
+
+            Q = np.array([[ q0*q0 + q1*q1 - q2*q2 - q3*q3 , 2*(q1*q2 - q0*q3), 2*(q1*q3 + q0*q2)],
+                          [ 2*(q1*q2 + q0*q3), q0*q0 - q1*q1 + q2*q2 - q3*q3, 2*(q2*q3 - q0*q1)],
+                          [ 2*(q1*q3 - q0*q2),  2*(q3*q2 + q0*q1), q0*q0 - q1*q1 - q2*q2 + q3*q3]])
+
+            # this should work fine!
+            new_vec = np.dot(Q, vec)
             
             return new_vec
 
@@ -124,37 +133,59 @@ class SimulationBox:
         # increment number of walks.
         self.num_walks += 1            
 
+    def structure(self, filename):
+        f = open(filename, "w")
+        
+        f.write(f"\
+#-----------------------------------------------------------------------------------\n\
+# HYDROPOLY - STRUCTURAL DATA FILE                                                  \n\
+#-----------------------------------------------------------------------------------\n\
+# FILENAME:  {filename}                                                        \n\
+# DATE: {today}                                                                     \n\
+#-----------------------------------------------------------------------------------\n\
+                                                                                    \n\
+{len(self.beads)} atoms                                                             \n\
+{len(self.beads)-self.num_walks} bonds                                              \n\
+                                                                                    \n\
+1 atom types                                                                        \n\
+1 bond types                                                                        \n\
+                                                                                    \n\
+0.0000 {self.x} xlo xhi                                                             \n\
+0.0000 {self.y} ylo yhi                                                             \n\
+0.0000 {self.z} zlo zhi                                                             \n\
+                                                                                    \n\
+                                                                                    \n\
+Masses                                                                              \n\
+                                                                                    \n\
+1 1.0                                                                               \n\
+                                                                                    \n\
+Atoms                                                                               \n\
+                                                                                    \n\
+")
 
-box = SimulationBox(30, 30, 30)
-box.generateChain(5, 0.1, math.pi/2)
+        for bead in range(len(self.beads)):
+            struc = self.beads[bead][0]+1
+            x, y, z = self.beads[bead][-3], self.beads[bead][-2], self.beads[bead][-1]
+            f.write(f"\t{bead+1}\t{struc}\t 1 \t{x:.5f}\t\t{y:.5f}\t\t{z:.5f}\t\n")
 
-x = []
-y = []
-z = []
+        f.write("\n\
+Bonds   \n\
+   \n")
+        
+        global_num = 0
+        bond_num = 0
+        for walk in self.walk_details:
+            for bond in range(self.walk_details[walk]-1):
+                bond_num+=1
+                global_num+=1
+                f.write(f"\t{global_num}\t 1 \t{bond_num}\t{bond_num+1}\n")
+            bond_num+=1
+                    
+            
+        f.close()
 
-print("testing angles")
-for j in range(1, len(box.beads)):
-    b1 = np.array([box.beads[j][2] - box.beads[j-1][2],
-                   box.beads[j][3] - box.beads[j-1][3],
-                   box.beads[j][4] - box.beads[j-1][4]])
 
-    b2 = np.array([box.beads[j-1][2] - box.beads[j-2][2],
-                   box.beads[j-1][3] - box.beads[j-2][3],
-                   box.beads[j-1][4] - box.beads[j-2][4]])
-    
-    print(np.linalg.norm(b1),
-          np.linalg.norm(b2))
-    
-    print(math.acos(np.dot(np.array(b1),np.array(b2))/(np.linalg.norm(b1)*np.linalg.norm(b2))))
-    print(" ")
 
-for i in box.beads:
-    x.append(i[2])
-    y.append(i[3])
-    z.append(i[4])
 
-fig = plt.figure()
-ax = fig.add_subplot(projection='3d')
 
-plt.plot(x, y, z, "-")
-plt.show()
+
