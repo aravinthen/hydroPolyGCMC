@@ -1,0 +1,48 @@
+DREIDING-UA17
+	ELJ: LJ with (σ, ε) = (3.62390 A, 0.1984 kcal/mol) 
+ 	EBOND = kb (l − l0)2 with (kb, l0) = (350 kcal/A2/mol, 1.53 A) 
+ 	EANGLE = ka (θ - θ0)2 with (ka, θ0) = (50 kcal/mol, 109.1°) 
+ 	ETORSION = 1.0 – 3.0 cos ϕ + 4.0 cos3 ϕ with 1-4 LJ interaction
+	
+DREIDING-UA (modified)
+	ELJ: LJ with (σ, ε) = (3.47299 A, 0.0951 kcal/mol) 
+ 	EBOND = kb (l − l0)2 with (kb, l0) = (42.19 kcal/A2/mol, 1.52 A) 
+ 	EANGLE = ka (cos θ − cos θ0)2 with (ka, θ0) = (59.53 kcal/mol, 109.47°) 
+ 	ETORSION = 1.0 – 1.31 cos ϕ – 1.414 cos2 ϕ + 0.3297 cos3 ϕ + 2.828 cos4 ϕ + 3.3943 cos5 ϕ
+
+Rigby–Roe28
+	ELJ: LJ with (σ, ε) = (3.8 A, 0.119 kcal/mol)
+	EBOND = kb (l − l0)2 with (kb, l0) = (42.19 kcal/A2/mol, 1.52 A) 
+ 	EANGLE = ka (cos θ − cos θ0)2 with (ka, θ0) = (59.53 kcal/mol, 109.47°) 
+ 	ETORSION = 1.0 – 1.31 cos ϕ – 1.414 cos2 ϕ + 0.3297 cos3 ϕ + 2.828 cos4 ϕ + 3.3943 cos5 ϕ
+
+Paul–Yoon–Smith29
+	ELJ: LJ with (σ, ε) = (4.5 A, 0.112 kcal/mol) 
+ 	EBOND: Constrained by l0 = 1.53 A 
+ 	EANGLE = ka (θ − θ0)2 with (ka, θ0) = (60 kcal/mol, 110°) 
+ 	ETORSION = 1.55 – 4.06 cos ϕ + 0.867 cos2 ϕ + 6.48 cos3 ϕ
+	
+Paul–Yoon–Smith (Rutledge and coworkers)30,31
+	ELJ: LJ with (σ, ε) = (4.01 A, 0.112 kcal/mol) 
+ 	EBOND: Constrained by l0 = 1.53 A 
+ 	EANGLE = ka (θ − θ0)2 with (ka, θ0) = (60 kcal/mol, 109°) 
+ 	ETORSION = 1.57 – 4.05 cos ϕ + 0.86 cos2 ϕ + 6.48 cos3 ϕ
+	
+Theodorou and coworkers37,38
+	ELJ: LJ with (σ, ε) = (3.94 A, 0.098 kcal/mol) 
+ 	EBOND: Constrained by l0 = 1.54 A 
+ 	EANGLE = ka (cos θ − cos θ0)2 with (ka, θ0) = (57.6 kcal/mol, 112°) 
+ 	ETORSION = 2.217 – 2.905 cos ϕ – 3.135 cos2 ϕ + 0.731 cos3 ϕ + 6.271 cos4 ϕ + 7.527 cos5 ϕ
+	
+OPLS-UA41
+	ELJ: LJ with (σ, ε) = (3.905 A, 0.118 kcal/mol) 
+ 	EBOND = kb (l − l0)2 with (kb, l0) = (260.0 kcal/A2/mol, 1.526 A) 
+ 	EANGLE = ka (θ − θ0)2 with (ka, θ0) = (63.0 kcal/mol, 112.4°) 
+ 	ETORSION = 1.100 – 6.350 cos ϕ – 1.250 cos2 ϕ + 6.200 cos3 ϕ 
+ 	with half of 1-4 LJ interaction
+	
+TraPPE-UA42
+	ELJ: LJ with (σ, ε) = (3.95 A, 0.09141 kcal/mol) 
+ 	EBOND = kb (l − l0)2 with (kb, l0) = (260.0 kcal/A2/mol, 1.54 A) 
+ 	EANGLE = ka (θ − θ0)2 with (ka, θ0) = (62.1 kcal/mol, 114°) 
+ 	ETORSION = 2.007 – 4.012 cos ϕ + 0.271 cos2 ϕ + 6.290 cos3 ϕ 
