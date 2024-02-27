@@ -11,14 +11,48 @@ import os
 today = date.today()
 
 class SimulationBox:
-    def __init__(self, x, y, z, cellnums):
 
-        # dimensions of box volume
-        self.x = x
-        self.y = y
-        self.z = z
-        self.z = cellnums
-        self.box_size = [x,y,z]
+    class Cell:
+        def __init__(self, position, index1, index2, index3, xside, yside, zside):            
+            """
+        index1, index2, index3: Index of the cell
+            position: position of the origin of the cell, relative to the lattice origin (0,0,0)
+            cellsides: inherited (but not in the OOP way) from the lattice.
+            """
+            self.position = position
+            self.i, self.j, self.k = index1, index2, index3
+            self.ijk = (index1, index2, index3) # used for index identification function
+            self.xside, self.yside, self.zside = xside, yside, zside  # same as that specified for lattice.
+            self.cellsides = [xside, yside, zside]
+            # sets a unique ID for the crosslinker bead
+            
+            # if the cell, for any reason, is not allowed to have beads or crosslinkers inside.
+            self.forbidden = False
+            
+            # multiple beads allowed in a cell.
+            self.beads = []
+            
+    
+    def __init__(self, Nx, Ny, Nz,
+                 xlen, ylen, zlen):
+        # Nx, Ny, Nz - Number of cells along each side            
+        self.Nx = Nx
+        self.Ny = Ny
+        self.Nz = Nz
+        
+        # xlen, ylen, zlen - length of the simulation box along each side
+        self.x = xlen
+        self.y = ylen
+        self.z = zlen
+
+        # cell side lengths
+        self.xside = Nx/xlen
+        self.yside = Ny/ylen
+        self.zside = Nz/zlen
+        
+        self.cellnums = Nx*Ny*Nz
+        self.box_size = [xlen,ylen,zlen]
+        self.cellsides = [self.xside, self.yside, self.zside]
 
         # number of walks
         self.num_walks = 0
@@ -47,16 +81,61 @@ class SimulationBox:
 
         self.Cells = []
         index_list = ((i,j,k)
-                      for i in range(self.numsx)
-                      for j in range(self.numsy)
-                      for k in range(self.numsz))
+                      for i in range(self.Nx)
+                      for j in range(self.Ny)
+                      for k in range(self.Nz))
         
         for index in index_list:
-            cell_positions = np.array([round(self.x*index[0], 16),
-                                       round(self.y*index[1], 16),
-                                       round(self.z*index[2], 16)])
-            self.Cells.append(self.Cell(index[0], index[1], index[2], cell_positions, self.cellside))
+            cell_positions = np.array([round(self.xside*index[0], 16),
+                                       round(self.yside*index[1], 16),
+                                       round(self.zside*index[2], 16)])
+            print(index, cell_positions)
+            self.Cells.append(self.Cell(cell_positions, index[0], index[1], index[2], self.xside, self.yside, self.zside))
 
+    def index(self, cell_list):
+        """
+        USE THIS TO ACCESS THE CELLS IN THE LATTICE!
+        """
+        error1 = cell_list[0] < 0 or cell_list[0]>self.Nx
+        error2 = cell_list[1] < 0 or cell_list[1]>self.Nx
+        error3 = cell_list[2] < 0 or cell_list[2]>self.Nx
+        if error1 or error2 or error3:
+            raise IndexError("Cell index out of range.")
+        
+        cell=self.Cells[self.Nx*self.Ny*cell_list[0]+self.Ny*cell_list[1]+cell_list[2]]
+        
+        return cell
+        
+    def which_cell(self, position):
+        """
+        Given a position, returns the index it'd be in as a list.
+        """
+        index = []
+        for i, pos in enumerate(position):
+            index.append(math.floor(pos/self.cellsides[i]))
+            
+        return np.array(index)
+
+    def check_surroundings(self, position):
+        """
+        gets a list of all the surrounding beads
+        CHECKS SURROUNDINGS OF A POSITION, _NOT_ A CELL INDEX!
+        This works by 
+        1. Getting the index of the cell we're in (position)
+        2. Getting all surrounding indices.
+        3. Removing all the indices that aren't valid (less than 0, greater than cellnums)
+        4. Accessing each cell marked by that index
+        5. Appending the bead list to a main list and outputting the mainlist.
+           Parameter: position
+        """
+        
+        cell_index = self.which_cell(position)
+
+        surround_ind = ([(cell_index[0]+i)%self.Nx,
+                         (cell_index[1]+j)%self.Ny,
+                         (cell_index[2]+k)%self.Nz] for i in range(-1,2) for j in range(-1,2) for k in range(-1,2))
+
+        return [bead for cell in surround_ind for bead in self.index(cell).beads]
         
 
     def generateChain(self, index, bondlength, dihedral, cutoff):
@@ -144,11 +223,11 @@ class SimulationBox:
             trial_posn[1] = trial_posn[1] % self.y
             trial_posn[2] = trial_posn[2] % self.z
 
-            attempts = 0
-            issue = 0
             valid = False
             while valid==False:
-                for ex_beads in self.beads:
+                issue = 0
+                neighbours = self.check_surroundings(trial_posn)
+                for ex_beads in neighbours:
                     delta = trial_posn - [ex_beads[-3], ex_beads[-2], ex_beads[-1]]
                     for i in range(3):
                         if delta[i] > 0.5*self.box_size[i]:
@@ -180,6 +259,9 @@ class SimulationBox:
                                posn[0],
                                posn[1],
                                posn[2]])
+            
+            current_cell = self.which_cell(posn)
+            self.index(current_cell).beads.append(bead_data)
 
         # add global walk parameters to walk_details
         self.walk_details[self.num_walks] = index
@@ -399,10 +481,6 @@ undump          1                                                               
         os.system(f"{lammps_path} < {self.settings_file}")
 
 # Program name: example.py
-box = SimulationBox(100, 100, 100)
- 
-for i in range(5):
-    print(f"WALK {i}")
-    box.generateChain(2000, 1.53, math.pi*(109.1/180), 0.5)
+box = SimulationBox(10, 10, 10, 100, 100, 100)
 
-box.structure("test_structure")
+box.generateChain(50, 1.53, math.pi*(109.1/180), 2)
