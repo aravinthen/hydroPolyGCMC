@@ -5,10 +5,11 @@ import math
 sys.path.insert(0, '../main/')
 from generator import SimulationBox
 
-box = SimulationBox(50, 50, 50)
+box = SimulationBox(10, 10, 10, 50, 50, 50)
 
-for i in range(4):
-    box.generateChain(50, 1.53, math.pi*(109.1/180))
+for i in range(200):
+    print(f"Currently on walk {i}")
+    box.generateChain(50, 1.53, math.pi*(109.1/180), 0.5)
 
 box.structure("test_structure")
 box.settings("test_settings")
@@ -39,4 +40,4 @@ box.quench(50000,
            100,
            100)
 
-box.run(lammps_path="~/Research/research-code/test_software/lammps/src/lmp_serial")
+# box.run(lammps_path="~/Research/research-code/test_software/lammps/src/lmp_serial")

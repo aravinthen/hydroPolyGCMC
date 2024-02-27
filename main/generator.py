@@ -46,9 +46,9 @@ class SimulationBox:
         self.z = zlen
 
         # cell side lengths
-        self.xside = Nx/xlen
-        self.yside = Ny/ylen
-        self.zside = Nz/zlen
+        self.xside = xlen/Nx
+        self.yside = ylen/Ny
+        self.zside = zlen/Nz
         
         self.cellnums = Nx*Ny*Nz
         self.box_size = [xlen,ylen,zlen]
@@ -89,8 +89,9 @@ class SimulationBox:
             cell_positions = np.array([round(self.xside*index[0], 16),
                                        round(self.yside*index[1], 16),
                                        round(self.zside*index[2], 16)])
-            print(index, cell_positions)
-            self.Cells.append(self.Cell(cell_positions, index[0], index[1], index[2], self.xside, self.yside, self.zside))
+            self.Cells.append(self.Cell(cell_positions,
+                                        index[0], index[1], index[2],
+                                        self.xside, self.yside, self.zside))
 
     def index(self, cell_list):
         """
@@ -141,6 +142,10 @@ class SimulationBox:
     def generateChain(self, index, bondlength, dihedral, cutoff):
         # this function generates a random walk within a volume
         # periodic boundary conditions are employed
+
+        # ERROR MESSAGES
+        if cutoff>bondlength:
+            raise ValueError("Minimum distance is greater than bond length.")
 
         def bond_vec(bondlength, dihedral, bv):
             # calculates a random bond vector
@@ -194,9 +199,29 @@ class SimulationBox:
                           # class scope please!
         
         # generate initial position
-        posn = [random.uniform(0, self.x),
-                random.uniform(0, self.y),
-                random.uniform(0, self.z)]
+        too_close = True
+        while too_close:
+            posn = np.array([random.uniform(0, self.x),
+                             random.uniform(0, self.y),
+                             random.uniform(0, self.z)])
+            
+            issue = 0
+            neighbours = self.check_surroundings(posn)
+            for ex_beads in neighbours:
+                delta = posn - np.array([ex_beads[-3], ex_beads[-2], ex_beads[-1]])
+                for i in range(3):
+                    if delta[i] > 0.5*self.box_size[i]:
+                        delta[i] -= self.box_size[i]
+                    elif (delta[i] <= -0.5*self.box_size[i]):
+                        delta[i] += self.box_size[i]
+
+                distance = np.linalg.norm(delta)
+
+                if distance < cutoff:
+                    issue=+1
+
+            if issue == 0:
+                too_close = False
 
         # generate the bond vector outside to use for the rotation matrix
         seed_bv = np.random.rand(3)
@@ -224,6 +249,7 @@ class SimulationBox:
             trial_posn[2] = trial_posn[2] % self.z
 
             valid = False
+            attempts = 0
             while valid==False:
                 issue = 0
                 neighbours = self.check_surroundings(trial_posn)
@@ -242,6 +268,7 @@ class SimulationBox:
                     
                 if issue == 0:
                     valid = True
+                    attempts=0
                 else:
                     trial_bv = bond_vec(bondlength, dihedral, bv)
                     trial_posn = posn + trial_bv
@@ -252,13 +279,16 @@ class SimulationBox:
                     issue = 0
                     attempts+=1
 
+            
             bv = trial_bv
             posn = trial_posn
-            self.beads.append([self.num_walks,
+            bead_data = [self.num_walks,
                                bead,
                                posn[0],
                                posn[1],
-                               posn[2]])
+                               posn[2]]
+            
+            self.beads.append(bead_data)
             
             current_cell = self.which_cell(posn)
             self.index(current_cell).beads.append(bead_data)
@@ -481,6 +511,9 @@ undump          1                                                               
         os.system(f"{lammps_path} < {self.settings_file}")
 
 # Program name: example.py
-box = SimulationBox(10, 10, 10, 100, 100, 100)
+box = SimulationBox(10, 10, 10, 50, 50, 50)
 
-box.generateChain(50, 1.53, math.pi*(109.1/180), 2)
+box.generateChain(50, 1.53, math.pi*(109.1/180), 1)
+box.generateChain(50, 1.53, math.pi*(109.1/180), 1)
+box.generateChain(50, 1.53, math.pi*(109.1/180), 1)
+box.generateChain(50, 1.53, math.pi*(109.1/180), 1)
